@@ -6,6 +6,7 @@ import tarfile
 import gzip
 from typing import List
 
+from bs4 import BeautifulSoup
 import requests
 import bibtexparser
 
@@ -106,3 +107,10 @@ def get_references(paper_id: str) -> List[str]:
     finally:
         shutil.rmtree('tmp')
     return references
+
+def get_metadata(paper_id: str):
+    abs_url = f'https://arxiv.org/abs/{paper_id}'
+    response = requests.get(abs_url)
+    soup = BeautifulSoup(response.text, 'html.parser')
+    abstract_elem = soup.find('blockquote', {'class': 'abstract'})
+    return (soup.title.string, abstract_elem.text)

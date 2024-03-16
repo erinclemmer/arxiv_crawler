@@ -31,7 +31,7 @@ def get_arxiv_from_g_scholar(title: str):
 
     driver = webdriver.Chrome(options=options)
     driver.get(SEARCH_URL + quote(title))
-    sleep_rand()
+    # sleep_rand()
     try:
         # Wait for the results to load
         WebDriverWait(driver, 10).until(

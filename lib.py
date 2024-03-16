@@ -1,4 +1,14 @@
 from typing import List
+def make_selection(max: int) -> int:
+    selection = input('#: ')
+    num = None
+    try:
+        num = int(selection)
+    except:
+        return None
+    if num < 1 or num > max:
+        return None
+    return num
 
 class Reference:
     def __init__(self):
@@ -16,9 +26,13 @@ class Reference:
         return obj
 
 class Paper:
+    id: str
+    title: str
+    abstract: str
     references: List[Reference]
     cited_by: List[Reference]
 
     def __init__(self):
+        self.title = None
         self.references = []
         self.cited_by = []
