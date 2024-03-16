@@ -39,9 +39,6 @@ def unzip(paper_id: str):
         with open(source_file_name, 'wb') as f:
             f.write(source_file_name)
 
-# def get_arxiv_from_g_scholar(title: str):
-
-
 def get_references_for_file(file_name: str):
     references = []
     with open(file_name, 'r') as f:
@@ -51,18 +48,16 @@ def get_references_for_file(file_name: str):
             ref.bib_data = entry
             if 'journal' in entry:
                 journal: str = entry["journal"]
-                match = re.findall('arxiv:\d{4}.\d{5}', journal.lower())
+                match = re.findall(r'arxiv:\d{4}.\d{5}', journal.lower())
                 if len(match) != 0:
                     ref.arxiv_id = match[0].split('arxiv:')[1]
-            # if ref.arxiv_id is None and 'title' in ref.bib_data:
-            #     ref.arxiv_id = get_arxiv_from_g_scholar(ref.bib_data["title"])
             references.append(ref)
     return references
 
 def get_references(paper_id: str) -> List[str]:
-    paper_id = paper_id.replace('.', '')
-    cleaned_id = paper_id
-    source_file_name = f'source/{paper_id}'
+    paper_id = paper_id
+    cleaned_id = paper_id.replace('.', '')
+    source_file_name = f'source/{cleaned_id}'
     references_file_name = f'references/{cleaned_id}.json'
 
     if not os.path.exists('source'):
