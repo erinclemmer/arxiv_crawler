@@ -9,10 +9,7 @@ from typing import List
 import requests
 import bibtexparser
 
-class Reference:
-    def __init__(self):
-        self.arxiv_id = None
-        self.name = None
+from lib import Reference
 
 def get_source_file_name(paper_id: str):
     return 'source/' + paper_id.replace('.', '')
@@ -42,27 +39,29 @@ def unzip(paper_id: str):
         with open(source_file_name, 'wb') as f:
             f.write(source_file_name)
 
+# def get_arxiv_from_g_scholar(title: str):
+
+
 def get_references_for_file(file_name: str):
     references = []
-    with bibtexparser.parse_file(file_name) as library:
-        ref = Reference()
+    with open(file_name, 'r') as f:
+        library = bibtexparser.bparser.parse(f.read())
         for entry in library.entries:
-            fields = entry.fields_dict
-            if 'title' in fields:
-                ref.name = fields['title']
-            if 'journal' in entry.fields_dict:
-                journal = entry.fields_dict["journal"]
-                match = re.findall('arxiv:\d{4}.\d{5}', journal)
+            ref = Reference()
+            ref.bib_data = entry
+            if 'journal' in entry:
+                journal: str = entry["journal"]
+                match = re.findall('arxiv:\d{4}.\d{5}', journal.lower())
                 if len(match) != 0:
                     ref.arxiv_id = match[0].split('arxiv:')[1]
-            
-            # TODO if can't find id, look up on google scholar for arxiv
-
-        references.append(ref)
+            # if ref.arxiv_id is None and 'title' in ref.bib_data:
+            #     ref.arxiv_id = get_arxiv_from_g_scholar(ref.bib_data["title"])
+            references.append(ref)
     return references
 
 def get_references(paper_id: str) -> List[str]:
-    cleaned_id = paper_id.replace('.', '')
+    paper_id = paper_id.replace('.', '')
+    cleaned_id = paper_id
     source_file_name = f'source/{paper_id}'
     references_file_name = f'references/{cleaned_id}.json'
 
@@ -104,8 +103,11 @@ def get_references(paper_id: str) -> List[str]:
                 for reference in get_references_for_file('tmp/' + file):
                     references.append(reference)
 
+        reference_file_data = []
+        for reference in references:
+            reference_file_data.append(reference.to_obj())
         with open(references_file_name, 'w') as f:
-            json.dump(references, f, indent=4)    
+            json.dump(reference_file_data, f, indent=4)    
     finally:
         shutil.rmtree('tmp')
     return references

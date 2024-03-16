@@ -2,3 +2,4 @@ source/
 env/
 references/
 projects/
+__pycache__/
