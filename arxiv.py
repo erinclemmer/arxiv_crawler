@@ -10,8 +10,6 @@ from bs4 import BeautifulSoup
 import requests
 import bibtexparser
 
-from lib import Reference
-
 def get_source_file_name(paper_id: str):
     return 'source/' + paper_id.replace('.', '')
 
@@ -45,14 +43,12 @@ def get_references_for_file(file_name: str):
     with open(file_name, 'r') as f:
         library = bibtexparser.bparser.parse(f.read())
         for entry in library.entries:
-            ref = Reference()
-            ref.bib_data = entry
             if 'journal' in entry:
                 journal: str = entry["journal"]
                 match = re.findall(r'arxiv:\d{4}.\d{5}', journal.lower())
                 if len(match) != 0:
-                    ref.arxiv_id = match[0].split('arxiv:')[1]
-            references.append(ref)
+                    entry["arxiv_id"] = match[0].split('arxiv:')[1]
+            references.append(entry)
     return references
 
 def get_references(paper_id: str) -> List[str]:
@@ -101,7 +97,7 @@ def get_references(paper_id: str) -> List[str]:
 
         reference_file_data = []
         for reference in references:
-            reference_file_data.append(reference.to_obj())
+            reference_file_data.append(reference)
         with open(references_file_name, 'w') as f:
             json.dump(reference_file_data, f, indent=4)    
     finally:
@@ -109,8 +105,22 @@ def get_references(paper_id: str) -> List[str]:
     return references
 
 def get_metadata(paper_id: str):
+    clean_id = paper_id.replace('.', '')
+    if os.path.exists(f'papers/{clean_id}.json'):
+        with open(f'papers/{clean_id}.json', 'r') as f:
+            return json.load(f)
     abs_url = f'https://arxiv.org/abs/{paper_id}'
     response = requests.get(abs_url)
     soup = BeautifulSoup(response.text, 'html.parser')
     abstract_elem = soup.find('blockquote', {'class': 'abstract'})
-    return (soup.title.string, abstract_elem.text)
+
+    if not os.path.exists('papers'):
+        os.mkdir('papers')
+    obj = {
+        "id": paper_id,
+        "title": soup.title.string,
+        "abstract": abstract_elem.text
+    }
+    with open(f'papers/{clean_id}.json', 'w') as f:
+        json.dump(obj, f)
+    return obj
