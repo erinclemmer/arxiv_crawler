@@ -80,5 +80,13 @@ def get_paper_api():
     paper = Paper(arxiv_id)
     return jsonify(paper.to_obj()), 200
 
+@app.route('/api/paper/get-url', methods=['POST'])
+@cross_origin()
+def get_paper_url():
+    body = request.json
+    if 'name' not in body:
+        return jsonify({ "Error": "Could not find \"name\" arg in request body"}), 200
+    return jsonify({ "todo": True }), 200
+
 if __name__ == '__main__':
     app.run(port=4000)
