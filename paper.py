@@ -2,13 +2,14 @@ import os
 import json
 from typing import List
 
+from reference import Reference
 from arxiv import get_metadata, get_references
 
 class Paper:
     arxiv_id: str
     title: str
     abstract: str
-    references: List[object]
+    references: List[Reference]
     cited_by: List[object]
 
     def __init__(self, arxiv_id: str = None):
@@ -29,25 +30,30 @@ class Paper:
                 data = json.load(f)
                 self.title = data["title"]
                 self.abstract = data["abstract"]
-            if os.path.exists(f'references/{clean_id}.json'):
-                with open(f'references/{clean_id}.json', 'r') as f:
-                    self.references = json.load(f)
-            return
+        else:
+            metadata = get_metadata(self.arxiv_id)
+            self.title = metadata["title"]
+            self.abstract = metadata["abstract"]
+            with open(file_name, 'w') as f:
+                json.dump(self.to_obj(), f, indent=4)
 
-        metadata = get_metadata(self.arxiv_id)
-        self.title = metadata["title"]
-        self.abstract = metadata["abstract"]
-
-        for ref_data in get_references(self.arxiv_id):
-            self.references.append(ref_data)
+        if os.path.exists(f'references/{clean_id}.json'):
+            with open(f'references/{clean_id}.json', 'r') as f:
+                for item in json.load(f):
+                    self.references.append(Reference(item))
+        else:
+            for ref_data in get_references(self.arxiv_id):
+                self.references.append(Reference(ref_data))
         
-        with open(file_name, 'r') as f:
-            json.dump(self.to_obj(), f, indent=4)
-
     def to_obj(self):
+        refs = []
+        for ref in self.references:
+            refs.append(ref.data)
         return {
+            "arxiv_id": self.arxiv_id,
+            "clean_id": self.arxiv_id.replace('.', ''),
             "title": self.title,
             "abstract": self.abstract,
-            "references": self.references,
+            "references": refs,
             "cited_by": self.cited_by
         }

@@ -1,10 +1,9 @@
 import os
-import json
-
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS, cross_origin
 
+from paper import Paper
 from project import Project, get_projects
 
 app = Flask(__name__)
@@ -64,6 +63,22 @@ def add_paper_api():
     project.add_paper(paper_id)
     project.save()
     return jsonify({ "Error": None }), 200
+
+@app.route('/api/paper/get', methods=['GET'])
+@cross_origin()
+def get_paper_api():
+    try:
+        arxiv_id: str = request.args.get('id')
+        if arxiv_id is None:
+            return jsonify({ "Error": f"Must add paper id to request as \"id\""}), 200
+    except:
+        return jsonify({ "Error": "Invalid ID" }), 200
+    try:
+        arxiv_id.index('.')
+    except:
+        arxiv_id = arxiv_id[:4] + '.' + arxiv_id[4:]
+    paper = Paper(arxiv_id)
+    return jsonify(paper.to_obj()), 200
 
 if __name__ == '__main__':
     app.run(port=4000)
