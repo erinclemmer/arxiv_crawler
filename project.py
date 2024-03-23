@@ -22,7 +22,12 @@ class Project:
 
     def save(self):
         with open(f'projects/{self.name}.json', 'w') as f:
-            json.dump(self.to_obj(), f, indent=4)
+            obj = self.to_obj()
+            papers = []
+            for paper in obj["papers"]:
+                papers.append(paper['arxiv_id'])
+            obj["papers"] = papers
+            json.dump(obj, f, indent=4)
 
     def add_paper(self, paper_id: str):
         paper = Paper(paper_id)

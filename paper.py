@@ -10,12 +10,14 @@ class Paper:
     title: str
     abstract: str
     references: List[Reference]
+    reference_error: str | None
     cited_by: List[object]
 
     def __init__(self, arxiv_id: str = None):
         self.arxiv_id = arxiv_id
         self.title = None
         self.abstract = None
+        self.reference_error = None
         self.references = []
         self.cited_by = []
 
@@ -42,7 +44,11 @@ class Paper:
                 for item in json.load(f):
                     self.references.append(Reference(item))
         else:
-            for ref_data in get_references(self.arxiv_id):
+            references = get_references(self.arxiv_id)
+            if type(references) == type(''):
+                self.reference_error = references
+                self.references = []
+            for ref_data in references:
                 self.references.append(Reference(ref_data))
         
     def to_obj(self):
@@ -55,5 +61,6 @@ class Paper:
             "title": self.title,
             "abstract": self.abstract,
             "references": refs,
+            "references_error": self.reference_error,
             "cited_by": self.cited_by
         }

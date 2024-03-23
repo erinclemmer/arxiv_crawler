@@ -1,3 +1,5 @@
 requests
 bibtexparser
 selenium
+python-magic
+python-magic-bin

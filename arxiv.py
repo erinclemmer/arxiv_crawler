@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import magic
 import shutil
 import tarfile
 import gzip
@@ -38,14 +39,16 @@ def unzip(paper_id: str):
         with open(source_file_name, 'wb') as f:
             f.write(source_file_name)
 
-def get_references_for_file(file_name: str):
+def get_file_type(file_name: str):
+    return magic.from_file(file_name)
+
+def get_references_for_file(file_name: str) -> List[str] | str:
     references = []
-    with open(file_name, 'r') as f:
+    with open(file_name, 'r', encoding='utf-8') as f:
         try:
             library = bibtexparser.bparser.parse(f.read())
-        except:
-            print('Error parsing .bib file')
-            return []
+        except Exception as e:
+            return f'Error parsing .bib file: {e}'
         for entry in library.entries:
             if 'journal' in entry:
                 journal: str = entry["journal"]
@@ -59,7 +62,7 @@ def get_references_for_file(file_name: str):
             references.append(entry)
     return references
 
-def get_references(paper_id: str) -> List[str]:
+def get_references(paper_id: str) -> List[str] | str:
     paper_id = paper_id
     cleaned_id = paper_id.replace('.', '')
     source_file_name = f'source/{cleaned_id}'
@@ -79,20 +82,21 @@ def get_references(paper_id: str) -> List[str]:
         print('Attempting to download source')
         res = download_arxiv(paper_id)
         if res is None:
-            return None # Bail if not downloaded
+            return 'Could not download arxiv archive' # Bail if not downloaded
     
     if os.path.exists('tmp'):
         shutil.rmtree('tmp')
     os.mkdir('tmp')
 
     try:
-        if not tarfile.is_tarfile(source_file_name):
+        if not tarfile.is_tarfile(source_file_name): # Assuming it's a gzip file
             unzip(paper_id) # Unzip to tar file
         
         if not tarfile.is_tarfile(source_file_name):
             print('Error reading source: unzipped data is not a tarball')
             os.rmdir('tmp')
-            return None # Bail if not tarfile
+            file_type = get_file_type(source_file_name)
+            return f'Downloaded archive is not the correct type (file type: {file_type})' # Bail if not tarfile
         
         with tarfile.open(source_file_name) as tar:
             tar.extractall(path='tmp', filter='data')
@@ -102,11 +106,14 @@ def get_references(paper_id: str) -> List[str]:
         for file in os.listdir('tmp'):
             if '.bib' in file:
                 found_file = True
-                for reference in get_references_for_file('tmp/' + file):
+                references_data = get_references_for_file('tmp/' + file)
+                if type(references_data) == type(''):
+                    return references_data
+                for reference in references_data:
                     references.append(reference)
 
         if not found_file:
-            print('Could not find .bib file in source')
+            return 'Could not find .bib file in source'
         reference_file_data = []
         for reference in references:
             reference_file_data.append(reference)
