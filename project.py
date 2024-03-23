@@ -29,12 +29,12 @@ class Project:
         self.papers.append(paper)
 
     def to_obj(self):
-        paper_ids = []
+        papers = []
         for p in self.papers:
-            paper_ids.append(p.arxiv_id)
+            papers.append(p.to_obj())
         return {
             "name": self.name,
-            "papers": paper_ids
+            "papers": papers
         }
 
 def get_projects() -> List[Project]:
