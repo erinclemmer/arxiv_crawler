@@ -54,7 +54,7 @@ class Paper:
     def to_obj(self):
         refs = []
         for ref in self.references:
-            refs.append(ref.data)
+            refs.append(ref.to_obj())
         return {
             "arxiv_id": self.arxiv_id,
             "clean_id": self.arxiv_id.replace('.', ''),
