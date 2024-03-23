@@ -59,6 +59,10 @@ def get_references_for_file(file_name: str) -> List[str] | str:
                 match = re.findall(r'arxiv.\d{4}.\d{5}', entry["doi"].lower())
                 if len(match) != 0:
                     entry["arxiv_id"] = match[0].split('arxiv.')[1]
+            if 'eprint' in entry:
+                match = re.findall(r'^\d{4}.\d{5}$', entry["eprint"].lower())
+                if len(match) != 0:
+                    entry["arxiv_id"] = match[0]
             references.append(entry)
     return references
 
