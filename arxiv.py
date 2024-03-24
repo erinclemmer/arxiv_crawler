@@ -42,13 +42,37 @@ def unzip(paper_id: str):
 def get_file_type(file_name: str):
     return magic.from_file(file_name)
 
-def get_references_for_file(file_name: str) -> List[str] | str:
+def extract_citations_from_latex() -> List[str]:
+    citation_pattern = re.compile(r'\\cite{([^}]+)}')
+    citation_keys = set()
+    latex_file_paths = []
+    for file in os.listdir('tmp'):
+        if '.tex' in file:
+            latex_file_paths.append('tmp/' + file)
+    print(f'Found {len(latex_file_paths)} .tex files')
+    for latex_file_path in latex_file_paths:
+        with open(latex_file_path, 'r', encoding='utf-8') as file:
+            content = file.read()
+            matches = citation_pattern.findall(content)
+            for match in matches:
+                # Split in case of multiple citations within a single \cite{}
+                keys: List[str] = match.split(',')
+                for key in keys:
+                    citation_keys.add(key.strip())
+    return citation_keys
+
+def get_references_for_file(file_name: str, ) -> List[str] | str:
     references = []
     with open(file_name, 'r', encoding='utf-8') as f:
         try:
-            library = bibtexparser.bparser.parse(f.read())
+            print('Loading file into memory')
+            file_contents = f.read()
+            print('Paring .bib file')
+            library = bibtexparser.bparser.parse(file_contents)
+            print('.bib file parsed')
         except Exception as e:
             return f'Error parsing .bib file: {e}'
+        print(f'Found {len(library.entries)} entries in .bib file')
         for entry in library.entries:
             if 'journal' in entry:
                 journal: str = entry["journal"]
@@ -64,6 +88,7 @@ def get_references_for_file(file_name: str) -> List[str] | str:
                 if len(match) != 0:
                     entry["arxiv_id"] = match[0]
             references.append(entry)
+    print('Done parsing .bib file')
     return references
 
 def get_references(paper_id: str) -> List[str] | str:
@@ -105,10 +130,14 @@ def get_references(paper_id: str) -> List[str] | str:
         with tarfile.open(source_file_name) as tar:
             tar.extractall(path='tmp', filter='data')
         
+        print('Extracting citations .tex files')
+        citations = extract_citations_from_latex()
+        print(f'Found {len(citations)} citations')
         references = []
         found_file = False
         for file in os.listdir('tmp'):
             if '.bib' in file:
+                print('Found .bib file, loading file into memory')
                 found_file = True
                 references_data = get_references_for_file('tmp/' + file)
                 if type(references_data) == type(''):
@@ -122,7 +151,7 @@ def get_references(paper_id: str) -> List[str] | str:
         for reference in references:
             reference_file_data.append(reference)
         with open(references_file_name, 'w') as f:
-            json.dump(reference_file_data, f, indent=4)    
+            json.dump(reference_file_data, f, indent=4)
     finally:
         shutil.rmtree('tmp')
     return references
