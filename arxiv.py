@@ -42,13 +42,23 @@ def unzip(paper_id: str):
 def get_file_type(file_name: str):
     return magic.from_file(file_name)
 
-def extract_citations_from_latex() -> List[str]:
-    citation_pattern = re.compile(r'\\cite{([^}]+)}')
-    citation_keys = set()
-    latex_file_paths = []
-    for file in os.listdir('tmp'):
+def get_tex_files_recursive(folder: str, files: List[str] = []) -> List[str]:
+    files_copy = []
+    for file in files:
+        files_copy.append(file)
+    for file in os.listdir(folder):
+        if os.path.isdir(folder + '/' + file):
+            tex_files = get_tex_files_recursive(f'{folder}/{file}')
+            for new_file in tex_files:
+                files_copy.append(new_file)
         if '.tex' in file:
-            latex_file_paths.append('tmp/' + file)
+            files_copy.append(f'{folder}/{file}')
+    return files_copy
+
+def extract_citations_from_latex() -> List[str]:
+    citation_pattern = re.compile(r'\\cite.?\{(.*?)\}')
+    citation_keys = set()
+    latex_file_paths = get_tex_files_recursive('tmp')
     print(f'Found {len(latex_file_paths)} .tex files')
     for latex_file_path in latex_file_paths:
         with open(latex_file_path, 'r', encoding='utf-8') as file:
@@ -61,7 +71,7 @@ def extract_citations_from_latex() -> List[str]:
                     citation_keys.add(key.strip())
     return citation_keys
 
-def get_references_for_file(file_name: str, ) -> List[str] | str:
+def get_references_for_file(file_name: str, found_citations: List[str]) -> List[str] | str:
     references = []
     with open(file_name, 'r', encoding='utf-8') as f:
         try:
@@ -73,7 +83,16 @@ def get_references_for_file(file_name: str, ) -> List[str] | str:
         except Exception as e:
             return f'Error parsing .bib file: {e}'
         print(f'Found {len(library.entries)} entries in .bib file')
+        found_ids = []
+        index = 0
         for entry in library.entries:
+            if entry["ID"] not in found_citations:
+                continue
+            if entry["ID"] in found_ids:
+                continue
+            entry["index"] = index
+            index += 1
+            found_ids.append(entry["ID"])
             if 'journal' in entry:
                 journal: str = entry["journal"]
                 match = re.findall(r'arxiv:\d{4}.\d{5}', journal.lower())
@@ -88,7 +107,7 @@ def get_references_for_file(file_name: str, ) -> List[str] | str:
                 if len(match) != 0:
                     entry["arxiv_id"] = match[0]
             references.append(entry)
-    print('Done parsing .bib file')
+    print(f'Done parsing .bib file, found {len(references)} references')
     return references
 
 def get_references(paper_id: str) -> List[str] | str:
@@ -139,7 +158,7 @@ def get_references(paper_id: str) -> List[str] | str:
             if '.bib' in file:
                 print('Found .bib file, loading file into memory')
                 found_file = True
-                references_data = get_references_for_file('tmp/' + file)
+                references_data = get_references_for_file('tmp/' + file, citations)
                 if type(references_data) == type(''):
                     return references_data
                 for reference in references_data:
