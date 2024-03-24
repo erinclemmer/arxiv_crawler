@@ -1,7 +1,4 @@
-requests
-flask
-flask-cors
+iequests
 bibtexparser
 selenium
 python-magic
-bs4
