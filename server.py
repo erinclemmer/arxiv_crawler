@@ -26,8 +26,9 @@ def create_project():
     if not 'name' in data:
         return jsonify({ "Error": "No name provided "}), 200
     name = data["name"]
-    if f'{name}.json' in os.listdir('projects'):
-        return jsonify({ "Error": "Project name already taken"}), 200
+    if os.path.exists('projects'):
+        if f'{name}.json' in os.listdir('projects'):
+            return jsonify({ "Error": "Project name already taken"}), 200
     project = Project(name)
     project.save()
     return jsonify({ "Error": None }), 200

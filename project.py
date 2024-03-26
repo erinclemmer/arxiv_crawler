@@ -21,6 +21,8 @@ class Project:
             self.papers.append(Paper(arxiv_id))
 
     def save(self):
+        if not os.path.exists('projects'):
+            os.mkdir('projects')
         with open(f'projects/{self.name}.json', 'w') as f:
             obj = self.to_obj()
             papers = []
@@ -44,6 +46,8 @@ class Project:
 
 def get_projects() -> List[Project]:
     projects = []
+    if not os.path.exists('projects'):
+        return []
     for p in os.listdir('projects'):
         projects.append(Project(p.replace('.json', '')))
     return projects
