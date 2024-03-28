@@ -2,6 +2,7 @@ import os
 import json
 from typing import List
 
+from lib import get_date_by_id
 from reference import Reference
 from arxiv import get_metadata, get_references
 
@@ -18,10 +19,12 @@ class Paper:
         self.title = None
         self.abstract = None
         self.reference_error = None
+        self.date = None
         self.references = []
         self.cited_by = []
 
         if self.arxiv_id is not None:
+            self.date = get_date_by_id(arxiv_id)
             self.load()
 
     def load(self):
@@ -58,6 +61,7 @@ class Paper:
         return {
             "arxiv_id": self.arxiv_id,
             "clean_id": self.arxiv_id.replace('.', ''),
+            "date": self.date,
             "title": self.title,
             "abstract": self.abstract,
             "references": refs,

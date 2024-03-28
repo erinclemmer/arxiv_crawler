@@ -84,7 +84,7 @@ def get_references_for_file(file_name: str, found_citations: List[str]) -> List[
             return f'Error parsing .bib file: {e}'
         print(f'Found {len(library.entries)} entries in .bib file')
         found_ids = []
-        index = 0
+        index = 1
         for entry in library.entries:
             if entry["ID"] not in found_citations:
                 continue
