@@ -48,7 +48,7 @@ def get_files_recursive(folder: str, files: List[str] = [], extension: str = '.t
         files_copy.append(file)
     for file in os.listdir(folder):
         if os.path.isdir(folder + '/' + file):
-            for new_file in get_files_recursive(f'{folder}/{file}'):
+            for new_file in get_files_recursive(f'{folder}/{file}', [], extension):
                 files_copy.append(new_file)
         if extension in file:
             files_copy.append(f'{folder}/{file}')
@@ -160,12 +160,15 @@ def get_references(paper_id: str) -> List[str] | str:
         if len(bib_files) == 0:
             return 'Could not find .bib file in source'
         print('Found .bib file, loading file into memory')
-        references_data = get_references_for_file(bib_files[0], citations)
-        if type(references_data) == type(''):
-            return references_data
-        for reference in references_data:
-            references.append(reference)
+        for bib_file in bib_files:
+            references_data = get_references_for_file(bib_file, citations)
+            if type(references_data) == type(''):
+                continue
+            for reference in references_data:
+                references.append(reference)
 
+        print(f'Found {len(references)} of {len(citations)} citations')
+        
         reference_file_data = []
         for reference in references:
             reference_file_data.append(reference)
