@@ -42,23 +42,22 @@ def unzip(paper_id: str):
 def get_file_type(file_name: str):
     return magic.from_file(file_name)
 
-def get_tex_files_recursive(folder: str, files: List[str] = []) -> List[str]:
+def get_files_recursive(folder: str, files: List[str] = [], extension: str = '.tex') -> List[str]:
     files_copy = []
     for file in files:
         files_copy.append(file)
     for file in os.listdir(folder):
         if os.path.isdir(folder + '/' + file):
-            tex_files = get_tex_files_recursive(f'{folder}/{file}')
-            for new_file in tex_files:
+            for new_file in get_files_recursive(f'{folder}/{file}'):
                 files_copy.append(new_file)
-        if '.tex' in file:
+        if extension in file:
             files_copy.append(f'{folder}/{file}')
     return files_copy
 
 def extract_citations_from_latex() -> List[str]:
     citation_pattern = re.compile(r'\\cite.?\{(.*?)\}')
     citation_keys = set()
-    latex_file_paths = get_tex_files_recursive('tmp')
+    latex_file_paths = get_files_recursive('tmp')
     print(f'Found {len(latex_file_paths)} .tex files')
     for latex_file_path in latex_file_paths:
         with open(latex_file_path, 'r', encoding='utf-8') as file:
@@ -73,6 +72,10 @@ def extract_citations_from_latex() -> List[str]:
 
 def get_references_for_file(file_name: str, found_citations: List[str]) -> List[str] | str:
     references = []
+    file_size_in_mb = os.stat(file_name).st_size / (1024 * 1024)
+    print(f'.bib file: {file_size_in_mb:.2f}MB')
+    if file_size_in_mb > 10:
+        return f'Large .bib file found size {file_size_in_mb:.2f}MB'
     with open(file_name, 'r', encoding='utf-8') as f:
         try:
             print('Loading file into memory')
@@ -153,19 +156,16 @@ def get_references(paper_id: str) -> List[str] | str:
         citations = extract_citations_from_latex()
         print(f'Found {len(citations)} citations')
         references = []
-        found_file = False
-        for file in os.listdir('tmp'):
-            if '.bib' in file:
-                print('Found .bib file, loading file into memory')
-                found_file = True
-                references_data = get_references_for_file('tmp/' + file, citations)
-                if type(references_data) == type(''):
-                    return references_data
-                for reference in references_data:
-                    references.append(reference)
-
-        if not found_file:
+        bib_files = get_files_recursive('tmp', [], '.bib')
+        if len(bib_files) == 0:
             return 'Could not find .bib file in source'
+        print('Found .bib file, loading file into memory')
+        references_data = get_references_for_file(bib_files[0], citations)
+        if type(references_data) == type(''):
+            return references_data
+        for reference in references_data:
+            references.append(reference)
+
         reference_file_data = []
         for reference in references:
             reference_file_data.append(reference)

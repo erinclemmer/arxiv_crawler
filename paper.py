@@ -6,6 +6,7 @@ from lib import get_date_by_id
 from reference import Reference
 from arxiv import get_metadata, get_references
 
+# TODO Implement look up in archiv search to double check if paper is available
 class Paper:
     arxiv_id: str
     title: str
