@@ -110,5 +110,15 @@ def get_paper_url():
         return jsonify({ "Error": "Could not find \"name\" arg in request body"}), 200
     return jsonify({ "todo": True }), 200
 
+@app.route('/api/paper/reload', methods=['POST', 'OPTIONS'])
+@cross_origin()
+def reload_paper():
+    body = request.json
+    if not 'arxiv_id' in body:
+        return jsonify({ "Error": "Could not find arxiv id in request body"}), 200
+    paper = Paper(body['arxiv_id'])
+    err = paper.reload()
+    return jsonify({ "Error": err }), 200
+
 if __name__ == '__main__':
     app.run(port=4000, host='0.0.0.0')

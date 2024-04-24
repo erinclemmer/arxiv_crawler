@@ -54,7 +54,23 @@ class Paper:
                 self.references = []
             for ref_data in references:
                 self.references.append(Reference(ref_data))
-        
+    
+    def reload(self) -> bool:
+        clean_id = self.arxiv_id.replace('.', '')
+        file_name = f'papers/{clean_id}.json'
+        if not os.path.exists(file_name):
+            return False
+        os.remove(file_name)
+        self.date = get_date_by_id(self.arxiv_id)
+        self.title = None
+        self.abstract = None
+        self.reference_error = None
+        self.date = None
+        self.references = []
+        self.cited_by = []
+        self.load()
+        return True
+
     def to_obj(self):
         refs = []
         for ref in self.references:
