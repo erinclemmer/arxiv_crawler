@@ -31,9 +31,18 @@ class Project:
             obj["papers"] = papers
             json.dump(obj, f, indent=4)
 
-    def add_paper(self, paper_id: str):
+    def add_paper(self, paper_id: str) -> bool:
         paper = Paper(paper_id)
+        containsPaper = False
+        for p in self.papers:
+            if p.arxiv_id == paper_id:
+                containsPaper = True
+                break
+        if containsPaper:
+            return False
+        
         self.papers.append(paper)
+        return True
     
     def remove_paper(self, paper_id: str):
         paper = None

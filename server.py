@@ -61,9 +61,9 @@ def add_paper_api():
         return jsonify({ "Error": "Could not find project name in project list"}), 200
     
     project = Project(project_name)
-    project.add_paper(paper_id)
+    err = project.add_paper(paper_id)
     project.save()
-    return jsonify({ "Error": None }), 200
+    return jsonify({ "Error": err }), 200
 
 @app.route('/api/paper/delete', methods=['POST', 'OPTIONS'])
 @cross_origin()
