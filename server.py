@@ -65,6 +65,27 @@ def add_paper_api():
     project.save()
     return jsonify({ "Error": None }), 200
 
+@app.route('/api/paper/delete', methods=['POST', 'OPTIONS'])
+@cross_origin()
+def delete_paper_api():
+    body = request.json
+    if not 'arxiv_id' in body:
+        return jsonify({ "Error": "Could not find arxiv id in request body"}), 200
+    if not 'project_name' in body:
+        return jsonify({ "Error": "Could not find project name in request body"}), 200
+    
+    paper_id = body['arxiv_id']
+    project_name = body['project_name']
+    
+    if not f'{project_name}.json' in os.listdir('projects'):
+        return jsonify({ "Error": "Could not find project name in project list"}), 200
+    
+    project = Project(project_name)
+    project.remove_paper(paper_id)
+    project.save()
+    return jsonify({ "Error": None }), 200
+
+
 @app.route('/api/paper/get', methods=['GET', 'OPTIONS'])
 @cross_origin()
 def get_paper_api():
@@ -90,4 +111,4 @@ def get_paper_url():
     return jsonify({ "todo": True }), 200
 
 if __name__ == '__main__':
-    app.run(port=4000)
+    app.run(port=4000, host='0.0.0.0')

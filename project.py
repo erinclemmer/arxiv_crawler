@@ -34,6 +34,14 @@ class Project:
     def add_paper(self, paper_id: str):
         paper = Paper(paper_id)
         self.papers.append(paper)
+    
+    def remove_paper(self, paper_id: str):
+        paper = None
+        for p in self.papers:
+            if p.arxiv_id == paper_id:
+                paper = p
+                break
+        self.papers.remove(paper)
 
     def to_obj(self):
         papers = []
