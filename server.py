@@ -11,7 +11,7 @@ app.debug = False
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 
-@app.route('/api/project/list', methods=['GET'])
+@app.route('/api/project/list', methods=['GET', 'OPTIONS'])
 @cross_origin()
 def getProjects():
     projects = []
@@ -33,7 +33,7 @@ def create_project():
     project.save()
     return jsonify({ "Error": None }), 200
 
-@app.route('/api/project/get', methods=["GET"])
+@app.route('/api/project/get', methods=["GET", 'OPTIONS'])
 @cross_origin()
 def get_project_api():
     try:
@@ -45,7 +45,7 @@ def get_project_api():
     project = Project(name)
     return jsonify(project.to_obj()), 200
 
-@app.route('/api/paper/create', methods=["POST"])
+@app.route('/api/paper/create', methods=["POST", 'OPTIONS'])
 @cross_origin()
 def add_paper_api():
     body = request.json
@@ -65,7 +65,7 @@ def add_paper_api():
     project.save()
     return jsonify({ "Error": None }), 200
 
-@app.route('/api/paper/get', methods=['GET'])
+@app.route('/api/paper/get', methods=['GET', 'OPTIONS'])
 @cross_origin()
 def get_paper_api():
     try:
@@ -81,7 +81,7 @@ def get_paper_api():
     paper = Paper(arxiv_id)
     return jsonify(paper.to_obj()), 200
 
-@app.route('/api/paper/get-url', methods=['POST'])
+@app.route('/api/paper/get-url', methods=['POST', 'OPTIONS'])
 @cross_origin()
 def get_paper_url():
     body = request.json
