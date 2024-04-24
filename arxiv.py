@@ -11,19 +11,29 @@ from bs4 import BeautifulSoup
 import requests
 import bibtexparser
 
+class Logger:
+    log_s: str
+
+    def __init__(self):
+        self.log_s = ''
+    
+    def log(self, output: str):
+        print(output)
+        self.log_s += output + '\n'
+
 def get_source_file_name(paper_id: str):
     return 'source/' + paper_id.replace('.', '')
 
-def download_arxiv(paper_id: str):
+def download_arxiv(logger: Logger, paper_id: str):
     source_file_name = get_source_file_name(paper_id)
     url = f'https://arxiv.org/e-print/{paper_id}'
     response = requests.get(url)
     if response.status_code == 404:
-        print(f'Error reading source: recieved 404 for {url}')
+        logger.log(f'Error reading source: recieved 404 for {url}')
         return None
     if response.status_code != 200:
         raise Exception(f'Error downloading source code for paper {paper_id}\n{response.content.decode()}')
-    print('Found paper source code, parsing file')
+    logger.log('Found paper source code, parsing file')
     if not os.path.exists('source'):
         os.mkdir('source')
     with open(source_file_name, 'wb') as f:
@@ -54,11 +64,11 @@ def get_files_recursive(folder: str, files: List[str] = [], extension: str = '.t
             files_copy.append(f'{folder}/{file}')
     return files_copy
 
-def extract_citations_from_latex() -> List[str]:
+def extract_citations_from_latex(logger: Logger) -> List[str]:
     citation_pattern = re.compile(r'\\cite.?\{(.*?)\}')
     citation_keys = set()
     latex_file_paths = get_files_recursive('tmp')
-    print(f'Found {len(latex_file_paths)} .tex files')
+    logger.log(f'Found {len(latex_file_paths)} .tex files')
     for latex_file_path in latex_file_paths:
         with open(latex_file_path, 'r', encoding='utf-8') as file:
             content = file.read()
@@ -70,22 +80,22 @@ def extract_citations_from_latex() -> List[str]:
                     citation_keys.add(key.strip())
     return citation_keys
 
-def get_references_for_file(file_name: str, found_citations: List[str]) -> List[str] | str:
+def get_references_for_file(logger: Logger, file_name: str, found_citations: List[str]) -> List[str] | str:
     references = []
     file_size_in_mb = os.stat(file_name).st_size / (1024 * 1024)
-    print(f'.bib file: {file_size_in_mb:.2f}MB')
+    logger.log(f'.bib file: {file_size_in_mb:.2f}MB')
     if file_size_in_mb > 10:
         return f'Large .bib file found size {file_size_in_mb:.2f}MB'
     with open(file_name, 'r', encoding='utf-8') as f:
         try:
-            print('Loading file into memory')
+            logger.log('Loading file into memory')
             file_contents = f.read()
-            print('Paring .bib file')
+            logger.log('Paring .bib file')
             library = bibtexparser.bparser.parse(file_contents)
-            print('.bib file parsed')
+            logger.log('.bib file parsed')
         except Exception as e:
             return f'Error parsing .bib file: {e}'
-        print(f'Found {len(library.entries)} entries in .bib file')
+        logger.log(f'Found {len(library.entries)} entries in .bib file')
         found_ids = []
         index = 1
         for entry in library.entries:
@@ -110,7 +120,7 @@ def get_references_for_file(file_name: str, found_citations: List[str]) -> List[
                 if len(match) != 0:
                     entry["arxiv_id"] = match[0]
             references.append(entry)
-    print(f'Done parsing .bib file, found {len(references)} references')
+    logger.log(f'Done parsing .bib file, found {len(references)} references')
     return references
 
 def get_references(paper_id: str) -> List[str] | str:
@@ -118,6 +128,7 @@ def get_references(paper_id: str) -> List[str] | str:
     cleaned_id = paper_id.replace('.', '')
     source_file_name = f'source/{cleaned_id}'
     references_file_name = f'references/{cleaned_id}.json'
+    logger = Logger()
 
     if not os.path.exists('source'):
         os.mkdir('source')
@@ -127,13 +138,15 @@ def get_references(paper_id: str) -> List[str] | str:
 
     if os.path.exists(references_file_name):
         with open(references_file_name, 'r') as f:
-            return json.load(f)
+            return json.load(f), logger.log_s
     
     if not os.path.exists(source_file_name):
-        print('Attempting to download source')
-        res = download_arxiv(paper_id)
+        logger.log('Attempting to download source')
+        res = download_arxiv(logger, paper_id)
         if res is None:
-            return 'Could not download arxiv archive' # Bail if not downloaded
+            err = 'Could not download arxiv archive'
+            logger.log(err)
+            return err, logger.log_s # Bail if not downloaded
     
     if os.path.exists('tmp'):
         shutil.rmtree('tmp')
@@ -144,30 +157,34 @@ def get_references(paper_id: str) -> List[str] | str:
             unzip(paper_id) # Unzip to tar file
         
         if not tarfile.is_tarfile(source_file_name):
-            print('Error reading source: unzipped data is not a tarball')
+            logger.log('Error reading source: unzipped data is not a tarball')
             os.rmdir('tmp')
             file_type = get_file_type(source_file_name)
-            return f'Downloaded archive is not the correct type (file type: {file_type})' # Bail if not tarfile
+            err = f'Downloaded archive is not the correct type (file type: {file_type})'
+            logger.log(err)
+            return err, logger.log_s # Bail if not tarfile
         
         with tarfile.open(source_file_name) as tar:
             tar.extractall(path='tmp', filter='data')
         
-        print('Extracting citations .tex files')
-        citations = extract_citations_from_latex()
-        print(f'Found {len(citations)} citations')
+        logger.log('Extracting citations .tex files')
+        citations = extract_citations_from_latex(logger)
+        logger.log(f'Found {len(citations)} citations')
         references = []
         bib_files = get_files_recursive('tmp', [], '.bib')
         if len(bib_files) == 0:
-            return 'Could not find .bib file in source'
-        print('Found .bib file, loading file into memory')
+            err = 'Could not find .bib file in source'
+            logger.log(err)
+            return err, logger.log_s
+        logger.log('Found .bib file, loading file into memory')
         for bib_file in bib_files:
-            references_data = get_references_for_file(bib_file, citations)
+            references_data = get_references_for_file(logger, bib_file, citations)
             if type(references_data) == type(''):
                 continue
             for reference in references_data:
                 references.append(reference)
 
-        print(f'Found {len(references)} of {len(citations)} citations')
+        logger.log(f'Found {len(references)} of {len(citations)} citations')
         
         reference_file_data = []
         for reference in references:
@@ -176,7 +193,7 @@ def get_references(paper_id: str) -> List[str] | str:
             json.dump(reference_file_data, f, indent=4)
     finally:
         shutil.rmtree('tmp')
-    return references
+    return references, logger.log_s
 
 def get_metadata(paper_id: str):
     clean_id = paper_id.replace('.', '')

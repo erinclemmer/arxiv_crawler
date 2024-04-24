@@ -6,11 +6,15 @@ from lib import get_date_by_id
 from reference import Reference
 from arxiv import get_metadata, get_references
 
-# TODO Implement look up in archiv search to double check if paper is available
+# TODO 
+#    Implement look up in archiv search to double check if paper is available
+#    Support other bibliography files such as '.bbl'
+#    Support ability to force parsing large .bib files
 class Paper:
     arxiv_id: str
     title: str
     abstract: str
+    log: str
     references: List[Reference]
     reference_error: str | None
     cited_by: List[object]
@@ -21,6 +25,7 @@ class Paper:
         self.abstract = None
         self.reference_error = None
         self.date = None
+        self.log = ''
         self.references = []
         self.cited_by = []
 
@@ -36,36 +41,46 @@ class Paper:
                 data = json.load(f)
                 self.title = data["title"]
                 self.abstract = data["abstract"]
+                self.log = data["log"] if 'log' in data else ''
         else:
             metadata = get_metadata(self.arxiv_id)
             self.title = metadata["title"]
             self.abstract = metadata["abstract"]
-            with open(file_name, 'w') as f:
-                json.dump(self.to_obj(), f, indent=4)
 
         if os.path.exists(f'references/{clean_id}.json'):
             with open(f'references/{clean_id}.json', 'r') as f:
                 for item in json.load(f):
                     self.references.append(Reference(item))
         else:
-            references = get_references(self.arxiv_id)
+            references, log = get_references(self.arxiv_id)
             if type(references) == type(''):
                 self.reference_error = references
                 self.references = []
             for ref_data in references:
                 self.references.append(Reference(ref_data))
+            self.log = log
+            with open(file_name, 'w') as f:
+                o = self.to_obj()
+                # Do not need to save reference data in paper file, it's saved in the references file
+                o['references'] = []
+                json.dump(o, f, indent=4)
     
     def reload(self) -> bool:
         clean_id = self.arxiv_id.replace('.', '')
-        file_name = f'papers/{clean_id}.json'
-        if not os.path.exists(file_name):
+        paper_file_name = f'papers/{clean_id}.json'
+        if not os.path.exists(paper_file_name):
             return False
-        os.remove(file_name)
+        os.remove(paper_file_name)
+        ref_file_name = f'references/{clean_id}.json'
+        if not os.path.exists(ref_file_name):
+            return False
+        os.remove(ref_file_name)
         self.date = get_date_by_id(self.arxiv_id)
         self.title = None
         self.abstract = None
         self.reference_error = None
         self.date = None
+        self.log = ''
         self.references = []
         self.cited_by = []
         self.load()
@@ -82,6 +97,7 @@ class Paper:
             "title": self.title,
             "abstract": self.abstract,
             "references": refs,
+            "log": self.log,
             "references_error": self.reference_error,
             "cited_by": self.cited_by
         }
