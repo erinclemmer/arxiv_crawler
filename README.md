@@ -18,8 +18,6 @@ A full-stack application (server + client) for managing collections of arXiv pap
   - [Projects](#projects)
   - [Papers](#papers)
 - [Client Routing](#client-routing)
-- [Development and Contributing](#development-and-contributing)
-- [License](#license)
 
 ---
 
